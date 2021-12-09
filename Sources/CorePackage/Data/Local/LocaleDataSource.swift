@@ -16,6 +16,9 @@ public protocol LocaleDataSourceProtocol: class {
     func checkIsFavorites(id: Int) -> Observable<Bool>
 }
 
+open class PersistentContainer: NSPersistentContainer {
+}
+
 public final class LocaleDataSource: NSObject {
     private var apiKey = "6a62324d4cce48d193f5e0834619d670"
 
@@ -23,22 +26,32 @@ public final class LocaleDataSource: NSObject {
 
     public static let sharedInstance: LocaleDataSource =  LocaleDataSource()
 
-    lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "GameFavorites")
-        container.loadPersistentStores { _, error in
-            guard error == nil else {
-                fatalError("Unresolved error \(error!)")
+    lazy var persistentContainer: PersistentContainer? = {
+//        let container = NSPersistentContainer(name: "GameFavorites")
+//        container.loadPersistentStores { _, error in
+//            guard error == nil else {
+//                fatalError("Unresolved error \(error!)")
+//            }
+//        }
+//        container.viewContext.automaticallyMergesChangesFromParent = false
+//        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+//        container.viewContext.shouldDeleteInaccessibleFaults = true
+//        container.viewContext.undoManager = nil
+//        return container
+        
+        guard let modelURL = Bundle.module.url(forResource:"GameFavorites", withExtension: "momd") else { return  nil }
+        guard let model = NSManagedObjectModel(contentsOf: modelURL) else { return nil }
+        let container = PersistentContainer(name:"GameFavorites",managedObjectModel:model)
+        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+            if let error = error as NSError? {
+                print("Unresolved error \(error), \(error.userInfo)")
             }
-        }
-        container.viewContext.automaticallyMergesChangesFromParent = false
-        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-        container.viewContext.shouldDeleteInaccessibleFaults = true
-        container.viewContext.undoManager = nil
+        })
         return container
     }()
 
     private func newTaskContext() -> NSManagedObjectContext {
-        let taskContext = persistentContainer.newBackgroundContext()
+        let taskContext = persistentContainer!.newBackgroundContext()
         taskContext.undoManager = nil
         taskContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         return taskContext
